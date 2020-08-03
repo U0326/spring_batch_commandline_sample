@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch-3.0.xsd
+     http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+    <!--  SpringBatch共通の設定  -->
+    <import resource="classpath:/common-batch-context.xml"/>
+
+    <!--  ジョブの設定  -->
+    <job id="job1" xmlns="http://www.springframework.org/schema/batch"
+         incrementer="jobParametersIncrementer">
+        <step id="step1" parent="simpleStep">
+            <tasklet>
+                <chunk reader="fileItemReader" writer="fileItemWriter"/>
+            </tasklet>
+        </step>
+    </job>
+
+    <bean id="jobParametersIncrementer"
+          class="org.springframework.batch.core.launch.support.RunIdIncrementer" />
+    <bean id="simpleStep"
+          class="org.springframework.batch.core.step.item.SimpleStepFactoryBean" abstract="true">
+        <property name="jobRepository" ref="jobRepository" />
+        <property name="commitInterval" value="1" />
+    </bean>
+
+    <bean id="fileItemReader"
+          class="org.springframework.batch.item.file.FlatFileItemReader" scope="step">
+        <property name="resource" value="classpath:./input.csv" />
+        <property name="lineMapper">
+            <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+                <property name="lineTokenizer">
+                    <bean class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+                        <property name="names" value="num,name" />
+                    </bean>
+                </property>
+                <property name="fieldSetMapper">
+                    <bean class="work.garaku.code.example.MemberFieldSetMapper" />
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="fileItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter">
+        <property name="resource" value="file:./src/main/resources/output.txt" />
+        <property name="lineAggregator">
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor" >
+                        <property name="names" value="name,num" />
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>
